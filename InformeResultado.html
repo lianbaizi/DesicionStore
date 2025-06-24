@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Ventas por Tienda</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7fafc;
+        }
+        
+        .store-card {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .store-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .category-chip {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .progress-bar {
+            transition: width 1s ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-indigo-700 mb-3">📊 Análisis de Ventas por Tienda</h1>
+            <p class="text-xl text-gray-600">Visualización interactiva de ventas por categoría</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12" id="stores-container">
+            <!-- Las tarjetas de tiendas se generarán aquí dinámicamente -->
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8" id="sales-summary">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Resumen General de Ventas</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200" id="summary-table">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tienda</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ventas</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Porcentaje</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Tienda</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <!-- Los datos se llenarán dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Distribución Global de Categorías</h2>
+            <div class="h-96" id="chart-container">
+                <!-- Gráfico se renderizará aquí -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Datos de ejemplo para las tiendas (simulando DataFrames)
+        const storeData = {
+            1: [
+                { category: 'Electrónica', product: 'Televisor' },
+                { category: 'Ropa', product: 'Camisa' },
+                { category: 'Electrónica', product: 'Laptop' },
+                { category: 'Ropa', product: 'Pantalón' },
+                { category: 'Alimentos', product: 'Manzana' }
+            ],
+            2: [
+                { category: 'Ropa', product: 'Zapatos' },
+                { category: 'Electrónica', product: 'Tablet' },
+                { category: 'Electrónica', product: 'Cámara' },
+                { category: 'Alimentos', product: 'Pan' }
+            ],
+            3: [
+                { category: 'Alimentos', product: 'Leche' },
+                { category: 'Ropa', product: 'Chaqueta' },
+                { category: 'Electrónica', product: 'Teléfono' }
+            ],
+            4: [
+                { category: 'Electrónica', product: 'Auriculares' },
+                { category: 'Ropa', product: 'Bufanda' },
+                { category: 'Alimentos', product: 'Galletas' },
+                { category: 'Ropa', product: 'Camiseta' }
+            ]
+        };
+        
+        // Función reusable para calcular ventas por categoría
+        function calculateSalesByCategory(storeProducts) {
+            const salesByCategory = {};
+            
+            storeProducts.forEach(item => {
+                if (!salesByCategory[item.category]) {
+                    salesByCategory[item.category] = 0;
+                }
+                salesByCategory[item.category]++;
+            });
+            
+            return salesByCategory;
+        }
+        
+        // Función para calcular porcentajes
+        function calculatePercentages(salesByCategory) {
+            const totalSales = Object.values(salesByCategory).reduce((sum, num) => sum + num, 0);
+            const percentages = {};
+            
+            for (const category in salesByCategory) {
+                percentages[category] = (salesByCategory[category] / totalSales * 100).toFixed(2);
+            }
+            
+            return { percentages, totalSales };
+        }
+        
+        // Función para procesar todos los datos de las tiendas
+        function processStoreData(stores) {
+            const results = [];
+            
+            for (const [storeId, products] of Object.entries(stores)) {
+                const salesByCategory = calculateSalesByCategory(products);
+                const { percentages, totalSales } = calculatePercentages(salesByCategory);
+                
+                results.push({
+                    storeId: parseInt(storeId),
+                    salesByCategory,
+                    percentages,
+                    totalSales
+                });
+            }
+            
+            return results;
+        }
+        
+        // Función para generar las tarjetas de las tiendas
+        function generateStoreCards(processedData) {
+            const container = document.getElementById('stores-container');
+            container.innerHTML = '';
+            
+            processedData.forEach(store => {
+                const categories = Object.keys(store.salesByCategory);
+                const topCategory = categories.reduce((a, b) => 
+                    store.salesByCategory[a] > store.salesByCategory[b] ? a : b
+                );
+                
+                const card = document.createElement('div');
+                card.className = 'store-card bg-white rounded-xl shadow-md p-6 hover:bg-indigo-50 cursor-pointer';
+                card.innerHTML = `
+                    <div class="flex items-center mb-4">
+                        <div class="bg-indigo-100 p-3 rounded-full mr-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-gray-800">Tienda ${store.storeId}</h3>
+                            <p class="text-gray-600">${store.totalSales} ventas totales</p>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <h4 class="text-sm font-semibold text-gray-500 mb-1">CATEGORÍA PRINCIPAL</h4>
+                        <span class="inline-block bg-indigo-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                            ${topCategory}
+                        </span>
+                    </div>
+                    <div class="space-y-2">
+                        ${categories.map(cat => `
+                            <div class="category-chip">
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="font-medium">${cat}</span>
+                                    <span class="text-gray-600">${store.salesByCategory[cat]} (${store.percentages[cat]}%)</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="progress-bar bg-indigo-500 h-2 rounded-full" style="width: ${store.percentages[cat]}%"></div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+        
+        // Función para generar la tabla de resumen
+        function generateSummaryTable(processedData) {
+            const tbody = document.querySelector('#summary-table tbody');
+            tbody.innerHTML = '';
+            
+            processedData.forEach(store => {
+                const categories = Object.keys(store.salesByCategory);
+                let firstRow = true;
+                
+                categories.forEach(cat => {
+                    const row = document.createElement('tr');
+                    
+                    if (firstRow) {
+                        row.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900 align-top" rowspan="${categories.length}">
+                                Tienda ${store.storeId}
+                                <div class="text-sm text-gray-500">${store.totalSales} ventas</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">${cat}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">${store.salesByCategory[cat]}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">${store.percentages[cat]}%</td>
+                            <td class="px-6 py-4 whitespace-nowrap align-top" rowspan="${categories.length}">${store.totalSales}</td>
+                        `;
+                        firstRow = false;
+                    } else {
+                        row.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap">${cat}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">${store.salesByCategory[cat]}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">${store.percentages[cat]}%</td>
+                        `;
+                    }
+                    
+                    tbody.appendChild(row);
+                });
+            });
+        }
+        
+        // Función para renderizar el gráfico circular (usando Chart.js)
+        function renderPieChart(processedData) {
+            // Preparar datos para el gráfico circular
+            const allCategories = {};
+            
+            processedData.forEach(store => {
+                Object.keys(store.salesByCategory).forEach(cat => {
+                    if (!allCategories[cat]) {
+                        allCategories[cat] = 0;
+                    }
+                    allCategories[cat] += store.salesByCategory[cat];
+                });
+            });
+            
+            const categories = Object.keys(allCategories);
+            const salesData = Object.values(allCategories);
+            const totalSales = salesData.reduce((sum, num) => sum + num, 0);
+            const percentages = salesData.map(num => (num / totalSales * 100).toFixed(2));
+            
+            const chartData = {
+                labels: categories,
+                datasets: [{
+                    data: salesData,
+                    backgroundColor: [
+                        'rgba(79, 70, 229, 0.8)',
+                        'rgba(236, 72, 153, 0.8)',
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(139, 92, 246, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(79, 70, 229, 1)',
+                        'rgba(236, 72, 153, 1)',
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(245, 158, 11, 1)',
+                        'rgba(139, 92, 246, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+            
+            const config = {
+                type: 'pie',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const percentage = percentages[context.dataIndex];
+                                    return `${label}: ${value} ventas (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            // Cargar Chart.js dinámicamente si no está cargado
+            if (typeof Chart === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+                script.onload = () => {
+                    new Chart(document.getElementById('chart-container'), config);
+                };
+                document.head.appendChild(script);
+            } else {
+                new Chart(document.getElementById('chart-container'), config);
+            }
+        }
+        
+        // Función principal que orquesta todo el proceso
+        function main() {
+            // Procesar los datos de todas las tiendas
+            const processedData = processStoreData(storeData);
+            
+            // Generar la interfaz de usuario
+            generateStoreCards(processedData);
+            generateSummaryTable(processedData);
+            renderPieChart(processedData);
+        }
+        
+        // Ejecutar la función principal cuando el DOM esté cargado
+        document.addEventListener('DOMContentLoaded', main);
+    </script>
+</body>
+</html>
